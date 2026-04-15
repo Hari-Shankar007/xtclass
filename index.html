@@ -1,0 +1,1393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EduChess — Live Classroom</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d0e11;
+  --bg2:#141518;
+  --bg3:#1c1d22;
+  --bg4:#242529;
+  --border:#2c2d33;
+  --border2:#383940;
+  --text:#e4e5ec;
+  --text2:#9a9baa;
+  --text3:#5a5b6a;
+  --gold:#c9a84c;
+  --gold2:rgba(201,168,76,0.15);
+  --gold3:rgba(201,168,76,0.08);
+  --green:#3ecf8e;
+  --red:#e5645a;
+  --blue:#5b8dee;
+  --r:10px;
+  --rs:6px;
+  --font:'IBM Plex Sans',sans-serif;
+  --mono:'IBM Plex Mono',monospace;
+  --display:'Lora',serif;
+}
+html,body{height:100%;overflow:hidden;font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px}
+button{font-family:var(--font);cursor:pointer;border:none;outline:none;background:none}
+input,textarea,select{font-family:var(--font);outline:none}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:9px}
+
+/* ── LOBBY ── */
+#lobby{
+  position:fixed;inset:0;z-index:1000;
+  background:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+}
+.lobby-card{
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:40px 44px;
+  width:min(420px,90vw);
+  box-shadow:0 24px 64px rgba(0,0,0,.6);
+}
+.lobby-logo{
+  display:flex;align-items:center;gap:10px;margin-bottom:28px;
+}
+.lobby-logo svg{flex-shrink:0}
+.lobby-logo-text{font-family:var(--display);font-size:22px;font-weight:700;color:var(--gold)}
+.lobby-title{font-family:var(--display);font-size:26px;font-weight:600;color:var(--text);line-height:1.2;margin-bottom:6px}
+.lobby-sub{font-size:13px;color:var(--text2);margin-bottom:28px;line-height:1.5}
+.role-pick{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:22px}
+.role-btn{
+  padding:14px 10px;
+  border-radius:var(--r);
+  border:2px solid var(--border);
+  background:var(--bg3);
+  color:var(--text2);
+  font-size:13px;font-weight:500;
+  transition:.15s;cursor:pointer;
+  text-align:center;
+}
+.role-btn:hover{border-color:var(--gold);color:var(--gold)}
+.role-btn.sel{border-color:var(--gold);background:var(--gold2);color:var(--gold)}
+.role-emoji{font-size:22px;display:block;margin-bottom:4px}
+.lbl{font-size:11px;font-weight:600;letter-spacing:.6px;color:var(--text3);text-transform:uppercase;margin-bottom:6px}
+.inp{
+  width:100%;background:var(--bg3);border:1px solid var(--border);
+  border-radius:var(--rs);padding:10px 13px;font-size:14px;
+  color:var(--text);transition:.15s;
+}
+.inp:focus{border-color:var(--gold)}
+.inp::placeholder{color:var(--text3)}
+.field{margin-bottom:16px}
+.btn-primary{
+  width:100%;padding:12px;border-radius:var(--r);
+  background:var(--gold);color:#1a1200;font-size:14px;font-weight:600;
+  transition:.15s;margin-top:4px;
+}
+.btn-primary:hover{background:#d4b55a}
+.btn-primary:disabled{opacity:.45;cursor:not-allowed}
+.divider{display:flex;align-items:center;gap:10px;margin:18px 0;color:var(--text3);font-size:12px}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
+.create-code{
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);
+  padding:10px 13px;margin-bottom:16px;
+}
+.code-display{font-family:var(--mono);font-size:20px;letter-spacing:3px;color:var(--gold);font-weight:500}
+.copy-btn{font-size:11px;font-weight:600;color:var(--text2);padding:4px 10px;background:var(--bg4);border-radius:4px;transition:.12s}
+.copy-btn:hover{color:var(--gold)}
+.error-msg{font-size:12px;color:var(--red);margin-top:6px;display:none}
+
+/* ── APP SHELL ── */
+#app{display:none;height:100vh;overflow:hidden;
+  display:none;
+  grid-template-rows:52px 1fr;
+  grid-template-columns:1fr 300px;
+}
+#app.visible{display:grid}
+
+/* HEADER */
+.hdr{
+  grid-column:1/-1;
+  display:flex;align-items:center;gap:12px;
+  padding:0 16px;
+  background:var(--bg2);border-bottom:1px solid var(--border);
+  z-index:50;
+}
+.hdr-logo{display:flex;align-items:center;gap:7px;text-decoration:none}
+.hdr-logo-text{font-family:var(--display);font-size:16px;font-weight:700;color:var(--gold)}
+.hdr-sep{width:1px;height:20px;background:var(--border);margin:0 4px}
+.hdr-session{font-size:13px;font-weight:500;color:var(--text)}
+.live-dot{display:flex;align-items:center;gap:5px;padding:3px 10px;border-radius:99px;background:rgba(229,100,90,.12);border:1px solid rgba(229,100,90,.25);font-size:11px;font-weight:600;color:var(--red)}
+.live-dot::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--red);animation:blink 1.3s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.hdr-room{font-family:var(--mono);font-size:12px;color:var(--text3);letter-spacing:1px}
+.hdr-sp{flex:1}
+.icon-btn{width:34px;height:34px;border-radius:var(--rs);display:flex;align-items:center;justify-content:center;color:var(--text2);transition:.13s}
+.icon-btn:hover{background:var(--bg3);color:var(--text)}
+.user-chip{display:flex;align-items:center;gap:7px;padding:3px 10px 3px 4px;background:var(--bg3);border:1px solid var(--border);border-radius:99px;cursor:default}
+.u-av{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.u-name{font-size:12px;font-weight:500}
+.u-role{font-size:10px;color:var(--gold);font-weight:600}
+
+/* MAIN */
+.main{
+  display:flex;flex-direction:column;
+  background:var(--bg);overflow:hidden;
+}
+
+/* toolbar */
+.toolbar{
+  display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+  padding:8px 14px;
+  background:var(--bg2);border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.tb-btn{
+  display:flex;align-items:center;gap:5px;
+  padding:5px 11px;border-radius:var(--rs);
+  font-size:12px;font-weight:500;color:var(--text2);
+  border:1px solid transparent;transition:.13s;
+}
+.tb-btn:hover{background:var(--bg3);color:var(--text);border-color:var(--border)}
+.tb-btn.on{background:var(--gold2);color:var(--gold);border-color:rgba(201,168,76,.3)}
+.tb-sep{width:1px;height:18px;background:var(--border);margin:0 2px}
+.fen-bar{
+  display:flex;align-items:center;gap:8px;
+  padding:6px 14px;background:var(--bg2);border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.fen-label{font-size:11px;font-weight:600;color:var(--text3);letter-spacing:.5px;flex-shrink:0}
+.fen-inp{
+  flex:1;background:var(--bg3);border:1px solid var(--border);
+  border-radius:var(--rs);padding:5px 10px;font-size:11.5px;font-family:var(--mono);
+  color:var(--text);
+}
+.fen-inp:focus{border-color:var(--gold)}
+.fen-go{padding:5px 12px;border-radius:var(--rs);background:var(--gold);color:#1a1200;font-size:12px;font-weight:600;transition:.13s;flex-shrink:0}
+.fen-go:hover{background:#d4b55a}
+
+/* board area */
+.board-wrap{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  padding:16px;overflow:hidden;
+  flex-direction:column;gap:8px;
+}
+.player-bar{display:flex;align-items:center;gap:8px;width:100%;max-width:var(--bsize,480px)}
+.p-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.p-name-lbl{font-size:12px;font-weight:600;color:var(--text)}
+.p-elo{font-size:10px;color:var(--text3)}
+.p-turn{margin-left:auto;display:flex;align-items:center;gap:4px;font-size:11px;color:var(--green);font-weight:600}
+.board-outer{position:relative}
+.coord-files{display:flex;width:100%}
+.coord-files span{flex:1;text-align:center;font-size:9px;color:var(--text3);font-family:var(--mono)}
+.coord-ranks{position:absolute;left:-14px;top:0;bottom:0;display:flex;flex-direction:column}
+.coord-ranks span{flex:1;display:flex;align-items:center;font-size:9px;color:var(--text3);font-family:var(--mono)}
+.board{
+  display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);
+  border-radius:6px;overflow:hidden;
+  box-shadow:0 0 0 2px var(--border),0 12px 40px rgba(0,0,0,.6);
+  user-select:none;
+}
+.sq{
+  display:flex;align-items:center;justify-content:center;
+  aspect-ratio:1;cursor:pointer;position:relative;transition:background .08s;
+}
+.sq.light{background:#e8d9bc}
+.sq.dark{background:#a07848}
+.sq.sel{background:rgba(100,200,120,.45)!important}
+.sq.legal{cursor:pointer}
+.sq.legal::after{
+  content:'';position:absolute;
+  width:32%;height:32%;border-radius:50%;
+  background:rgba(0,0,0,.22);pointer-events:none;
+}
+.sq.legal.has-piece::after{
+  width:100%;height:100%;border-radius:0;
+  background:none;
+  border:3px solid rgba(0,0,0,.3);box-sizing:border-box;
+}
+.sq.last-from{background:rgba(255,220,50,.35)!important}
+.sq.last-to{background:rgba(255,220,50,.55)!important}
+.sq.check{background:rgba(229,100,90,.55)!important}
+.piece{font-size:clamp(16px,4.5vw,38px);line-height:1;pointer-events:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.4));transition:transform .1s}
+.piece.drag{transform:scale(1.15)}
+
+/* notation */
+.notation-panel{
+  border-top:1px solid var(--border);
+  background:var(--bg2);padding:8px 14px;
+  max-height:120px;overflow-y:auto;flex-shrink:0;
+}
+.move-row-wrap{display:flex;flex-wrap:wrap;gap:2px 0;font-family:var(--mono);font-size:12px}
+.mv-num{color:var(--text3);padding:2px 5px}
+.mv{padding:2px 6px;border-radius:3px;color:var(--text2);cursor:pointer;transition:.1s}
+.mv:hover{background:var(--bg3);color:var(--text)}
+.mv.cur{background:var(--gold2);color:var(--gold)}
+
+/* RIGHT PANEL */
+.right{
+  background:var(--bg2);border-left:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.r-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
+.r-tab{flex:1;padding:10px 4px;text-align:center;font-size:12px;font-weight:500;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:.12s}
+.r-tab:hover{color:var(--text)}
+.r-tab.on{color:var(--gold);border-bottom-color:var(--gold)}
+.r-view{display:none;flex-direction:column;flex:1;overflow:hidden}
+.r-view.on{display:flex}
+
+/* VIDEO */
+.video-section{padding:10px;display:flex;flex-direction:column;gap:7px;overflow-y:auto;flex:1}
+.vid-tile{border-radius:var(--r);overflow:hidden;position:relative;background:var(--bg3);border:1px solid var(--border)}
+.vid-tile.coach-tile{aspect-ratio:4/3}
+.vid-tile.student-tile{aspect-ratio:4/3}
+.vid-inner{
+  width:100%;height:100%;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--bg3);position:relative;
+  flex-direction:column;gap:5px;
+}
+.vid-inner video{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+.vid-av{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;position:relative;z-index:1}
+.vid-label{
+  position:absolute;bottom:7px;left:7px;
+  background:rgba(0,0,0,.65);backdrop-filter:blur(4px);
+  padding:3px 8px;border-radius:99px;
+  display:flex;align-items:center;gap:5px;z-index:2;
+}
+.vid-label span{font-size:11px;font-weight:600;color:#fff}
+.vid-badge{padding:1px 6px;border-radius:99px;font-size:9px;font-weight:700}
+.vid-muted{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.55);border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;z-index:2}
+.students-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.media-bar{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  padding:10px;border-top:1px solid var(--border);flex-shrink:0;
+}
+.mc{
+  width:36px;height:36px;border-radius:50%;
+  background:var(--bg3);border:1px solid var(--border);
+  color:var(--text2);display:flex;align-items:center;justify-content:center;
+  transition:.13s;font-size:13px;
+}
+.mc:hover{background:var(--bg4);color:var(--text)}
+.mc.on{background:var(--gold2);border-color:rgba(201,168,76,.35);color:var(--gold)}
+.mc.red{background:rgba(229,100,90,.12);border-color:rgba(229,100,90,.3);color:var(--red)}
+.mc.red:hover{background:var(--red);color:#fff}
+
+/* CHAT */
+.chat-msgs{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+.c-msg{display:flex;gap:7px}
+.c-av{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;margin-top:1px}
+.c-who{font-size:11px;font-weight:600;color:var(--text2)}
+.c-role{font-size:9px;font-weight:600;margin-left:4px}
+.c-text{font-size:12px;color:var(--text);line-height:1.5}
+.chat-inp-row{display:flex;gap:6px;padding:9px 12px;border-top:1px solid var(--border);flex-shrink:0}
+.chat-inp{
+  flex:1;background:var(--bg3);border:1px solid var(--border);
+  border-radius:var(--rs);padding:7px 10px;font-size:12px;color:var(--text);
+}
+.chat-inp:focus{border-color:var(--gold)}
+.chat-inp::placeholder{color:var(--text3)}
+.send-btn{width:30px;height:30px;border-radius:50%;background:var(--gold);color:#1a1200;display:flex;align-items:center;justify-content:center;transition:.12s}
+.send-btn:hover{background:#d4b55a}
+
+/* PGN panel */
+.pgn-panel{flex:1;display:flex;flex-direction:column;padding:12px;gap:8px;overflow-y:auto}
+.pgn-ta{
+  flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);
+  padding:10px;font-size:11px;font-family:var(--mono);color:var(--text);
+  resize:none;min-height:140px;line-height:1.7;
+}
+.pgn-ta:focus{border-color:var(--gold)}
+.pgn-btn{padding:8px;border-radius:var(--rs);background:var(--gold);color:#1a1200;font-size:12px;font-weight:600;transition:.12s;text-align:center}
+.pgn-btn:hover{background:#d4b55a}
+.pgn-clear{padding:8px;border-radius:var(--rs);background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-size:12px;font-weight:500;transition:.12s;text-align:center}
+.pgn-clear:hover{border-color:var(--border2);color:var(--text)}
+.note-box{padding:10px;background:var(--bg3);border-radius:var(--rs);font-size:12px;color:var(--text2);border:1px solid var(--border);line-height:1.6}
+
+/* TOAST */
+.toasts{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:2000;display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none}
+.toast{
+  background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);
+  padding:9px 16px;font-size:13px;font-weight:500;color:var(--text);
+  box-shadow:0 6px 24px rgba(0,0,0,.5);
+  display:flex;align-items:center;gap:8px;white-space:nowrap;
+  animation:tin .22s ease,tout .22s ease 2.78s forwards;
+}
+@keyframes tin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes tout{to{opacity:0;transform:translateY(8px)}}
+.t-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+
+/* status indicator for video */
+.no-cam-text{font-size:11px;color:var(--text3);position:relative;z-index:1}
+
+/* Waiting room tile */
+.waiting-tile{
+  background:var(--bg3);border:1px dashed var(--border2);border-radius:var(--r);
+  padding:12px;text-align:center;font-size:12px;color:var(--text3);
+}
+
+@media(max-width:700px){
+  #app.visible{grid-template-columns:1fr;grid-template-rows:52px 1fr}
+  .right{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ LOBBY ═══ -->
+<div id="lobby">
+  <div class="lobby-card">
+    <div class="lobby-logo">
+      <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
+        <rect width="34" height="34" rx="8" fill="#1c1d22"/>
+        <path d="M17 5 L19.2 10.8 L25.5 11.3 L21 15.4 L22.4 21.6 L17 18.4 L11.6 21.6 L13 15.4 L8.5 11.3 L14.8 10.8 Z" fill="#c9a84c"/>
+        <rect x="10" y="25" width="14" height="3" rx="1.5" fill="#c9a84c" opacity=".6"/>
+        <rect x="8" y="28" width="18" height="2.5" rx="1.25" fill="#c9a84c" opacity=".35"/>
+      </svg>
+      <span class="lobby-logo-text">EduChess</span>
+    </div>
+    <div class="lobby-title">Join or Create a Classroom</div>
+    <div class="lobby-sub">Live chess lessons with interactive board, video, and real-time analysis.</div>
+
+    <!-- Role picker -->
+    <div class="lbl">I am a</div>
+    <div class="role-pick" style="margin-bottom:20px">
+      <button class="role-btn sel" id="roleCoach" onclick="setRole('coach')">
+        <span class="role-emoji">👨‍🏫</span>Coach
+      </button>
+      <button class="role-btn" id="roleStudent" onclick="setRole('student')">
+        <span class="role-emoji">🎓</span>Student
+      </button>
+    </div>
+
+    <!-- Name -->
+    <div class="field">
+      <div class="lbl">Your Name</div>
+      <input class="inp" id="nameInp" placeholder="e.g. Grandmaster Nirav" type="text">
+    </div>
+
+    <!-- Coach: create room -->
+    <div id="coachArea">
+      <div class="lbl">Your Room Code</div>
+      <div class="create-code">
+        <span class="code-display" id="genCode">—</span>
+        <button class="copy-btn" onclick="copyCode()">Copy</button>
+      </div>
+      <button class="btn-primary" onclick="createRoom()">Create &amp; Enter Classroom</button>
+    </div>
+
+    <!-- Student: join room -->
+    <div id="studentArea" style="display:none">
+      <div class="field">
+        <div class="lbl">Room Code</div>
+        <input class="inp" id="codeInp" placeholder="e.g. ECH-4821" type="text" maxlength="8" style="letter-spacing:2px;font-family:var(--mono);font-size:16px">
+        <div class="error-msg" id="codeError">Room not found. Double-check the code.</div>
+      </div>
+      <button class="btn-primary" onclick="joinRoom()">Join Classroom</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ APP ═══ -->
+<div id="app">
+  <!-- HEADER -->
+  <header class="hdr">
+    <a class="hdr-logo" href="#">
+      <svg width="26" height="26" viewBox="0 0 34 34" fill="none"><rect width="34" height="34" rx="8" fill="#1c1d22"/><path d="M17 5 L19.2 10.8 L25.5 11.3 L21 15.4 L22.4 21.6 L17 18.4 L11.6 21.6 L13 15.4 L8.5 11.3 L14.8 10.8 Z" fill="#c9a84c"/><rect x="10" y="25" width="14" height="3" rx="1.5" fill="#c9a84c" opacity=".6"/></svg>
+      <span class="hdr-logo-text">EduChess</span>
+    </a>
+    <div class="hdr-sep"></div>
+    <span class="hdr-session" id="hdrSession">Classroom</span>
+    <div class="live-dot">Live</div>
+    <span class="hdr-room" id="hdrRoom"></span>
+    <div class="hdr-sp"></div>
+    <div class="user-chip" id="userChip">
+      <div class="u-av" id="userAv" style="background:#c9a84c30;color:#c9a84c"></div>
+      <div>
+        <div class="u-name" id="userName">—</div>
+        <div class="u-role" id="userRoleLbl">Coach</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <div class="main">
+    <!-- Toolbar (coach only) -->
+    <div class="toolbar" id="coachToolbar">
+      <button class="tb-btn" onclick="flipBoard()">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M1.5 6.5H11.5M1.5 6.5L4 4M1.5 6.5L4 9M11.5 6.5L9 4M11.5 6.5L9 9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Flip Board
+      </button>
+      <button class="tb-btn" id="editBtn" onclick="toggleEditMode()">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M9 2L11 4L5 10H3V8L9 2Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+        Edit Board
+      </button>
+      <div class="tb-sep"></div>
+      <button class="tb-btn" onclick="resetBoard()">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 6.5C2 4.01 4.01 2 6.5 2C8.14 2 9.58 2.87 10.38 4.17" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M11 2.5V5H8.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M11 6.5C11 8.99 8.99 11 6.5 11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        Reset
+      </button>
+      <button class="tb-btn" onclick="clearBoard()">Clear Board</button>
+      <div class="tb-sep"></div>
+      <button class="tb-btn" id="lockBtn" onclick="toggleStudentMove()">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" id="lockIcon"><rect x="3.5" y="5.5" width="6" height="5" rx="1" stroke="currentColor" stroke-width="1.2"/><path d="M4.5 5.5V4C4.5 2.9 5.45 2 6.5 2C7.55 2 8.5 2.9 8.5 4V5.5" stroke="currentColor" stroke-width="1.2"/></svg>
+        <span id="lockTxt">Students: Watch</span>
+      </button>
+    </div>
+
+    <!-- FEN bar -->
+    <div class="fen-bar" id="fenBar">
+      <span class="fen-label">FEN</span>
+      <input class="fen-inp" id="fenInp" placeholder="Paste FEN string…" type="text">
+      <button class="fen-go" onclick="loadFEN()">Load</button>
+    </div>
+
+    <!-- Board -->
+    <div class="board-wrap">
+      <div class="player-bar" id="topPlayerBar">
+        <div class="p-av" id="topAv" style="background:#5b8dee30;color:#5b8dee">?</div>
+        <div>
+          <div class="p-name-lbl" id="topName">Black</div>
+          <div class="p-elo" id="topSub">Waiting…</div>
+        </div>
+        <div class="p-turn" id="topTurn" style="display:none">▶ To move</div>
+      </div>
+
+      <div class="board-outer" id="boardOuter">
+        <div class="coord-ranks" id="rankCoords"></div>
+        <div class="board" id="board"></div>
+      </div>
+      <div class="coord-files" id="fileCoords"></div>
+
+      <div class="player-bar" id="botPlayerBar">
+        <div class="p-av" id="botAv" style="background:#c9a84c30;color:#c9a84c"></div>
+        <div>
+          <div class="p-name-lbl" id="botName">White</div>
+          <div class="p-elo" id="botSub">Coach</div>
+        </div>
+        <div class="p-turn" id="botTurn">▶ To move</div>
+      </div>
+    </div>
+
+    <!-- Notation -->
+    <div class="notation-panel">
+      <div class="move-row-wrap" id="notationWrap"><span style="color:var(--text3);font-size:12px">No moves yet.</span></div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right">
+    <div class="r-tabs">
+      <div class="r-tab on" onclick="rTab(this,'vid')">Video</div>
+      <div class="r-tab" onclick="rTab(this,'chat')">Chat</div>
+      <div class="r-tab" onclick="rTab(this,'pgn')">PGN</div>
+    </div>
+
+    <!-- Video -->
+    <div class="r-view on" id="r-vid">
+      <div class="video-section" id="videoSection">
+        <!-- populated by JS -->
+      </div>
+      <div class="media-bar">
+        <button class="mc on" id="micBtn" onclick="toggleMic()" title="Mute/Unmute" aria-label="Microphone">🎙️</button>
+        <button class="mc" id="camBtn" onclick="toggleCam()" title="Camera" aria-label="Camera">📷</button>
+        <button class="mc" onclick="toast('Screen sharing not available in preview','#5b8dee')" title="Share screen" aria-label="Screen share">🖥️</button>
+        <button class="mc" id="handBtn" onclick="raiseHand()" title="Raise hand" aria-label="Raise hand">✋</button>
+        <button class="mc red" onclick="endCall()" title="End" aria-label="Leave">📞</button>
+      </div>
+    </div>
+
+    <!-- Chat -->
+    <div class="r-view" id="r-chat">
+      <div class="chat-msgs" id="chatMsgs"></div>
+      <div class="chat-inp-row">
+        <input class="chat-inp" id="chatInp" placeholder="Send a message…" onkeydown="chatKey(event)" aria-label="Chat message">
+        <button class="send-btn" onclick="sendChat()" aria-label="Send">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 6L11 1L8 6L11 11L1 6Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" fill="none"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- PGN -->
+    <div class="r-view" id="r-pgn">
+      <div class="pgn-panel">
+        <div class="note-box">Paste a PGN below and click <strong>Load PGN</strong>. The board will play through the game automatically, or use the move list to navigate.</div>
+        <textarea class="pgn-ta" id="pgnTa" placeholder='[Event "Example"]&#10;[White "Player 1"]&#10;[Black "Player 2"]&#10;&#10;1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 *'></textarea>
+        <button class="pgn-btn" onclick="loadPGN()">Load PGN</button>
+        <button class="pgn-clear" onclick="copyFEN()">Copy current FEN</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+// CHESS ENGINE — full legal move generation
+// ═══════════════════════════════════════════════
+const PIECES = {
+  wK:'♔',wQ:'♕',wR:'♖',wB:'♗',wN:'♘',wP:'♙',
+  bK:'♚',bQ:'♛',bR:'♜',bB:'♝',bN:'♞',bP:'♟',
+};
+const GLYPHS = Object.fromEntries(Object.entries(PIECES).map(([k,v])=>[v,k]));
+const W_PIECES=new Set(['wK','wQ','wR','wB','wN','wP']);
+const B_PIECES=new Set(['bK','bQ','bR','bB','bN','bP']);
+const color=p=>p&&(W_PIECES.has(p)?'w':'b');
+const enemy=(p,c)=>p&&color(p)!==c;
+const inBoard=(r,c)=>r>=0&&r<8&&c>=0&&c<8;
+
+// State
+let G={
+  board:null,
+  turn:'w',
+  castling:{wK:true,wQ:true,bK:true,bQ:true},
+  ep:null, // en-passant target [r,c]
+  history:[],   // [{from,to,piece,cap,notation,fen}]
+  histIdx:-1,
+  flipped:false,
+  studentCanMove:false,
+  editMode:false,
+  selectedEditPiece:null,
+};
+
+function startBoard(){
+  return [
+    ['bR','bN','bB','bQ','bK','bB','bN','bR'],
+    ['bP','bP','bP','bP','bP','bP','bP','bP'],
+    [null,null,null,null,null,null,null,null],
+    [null,null,null,null,null,null,null,null],
+    [null,null,null,null,null,null,null,null],
+    [null,null,null,null,null,null,null,null],
+    ['wP','wP','wP','wP','wP','wP','wP','wP'],
+    ['wR','wN','wB','wQ','wK','wB','wN','wR'],
+  ];
+}
+
+function cloneBoard(b){return b.map(r=>[...r]);}
+
+// Pseudo-legal moves for a piece at (r,c)
+function pseudoMoves(board,r,c){
+  const p=board[r][c];if(!p)return[];
+  const cl=color(p),type=p[1];
+  const moves=[];
+  const add=(tr,tc)=>{if(inBoard(tr,tc)&&!W_PIECES.has(board[tr][tc])&&!B_PIECES.has(board[tr][tc])||inBoard(tr,tc)&&enemy(board[tr][tc],cl))moves.push([tr,tc]);};
+  const slide=(dr,dc)=>{let nr=r+dr,nc=c+dc;while(inBoard(nr,nc)){if(board[nr][nc]){if(enemy(board[nr][nc],cl))moves.push([nr,nc]);break;}moves.push([nr,nc]);nr+=dr;nc+=dc;}};
+
+  if(type==='P'){
+    const dir=cl==='w'?-1:1,startRow=cl==='w'?6:1;
+    if(inBoard(r+dir,c)&&!board[r+dir][c]){
+      moves.push([r+dir,c]);
+      if(r===startRow&&!board[r+2*dir][c])moves.push([r+2*dir,c]);
+    }
+    for(const dc of[-1,1]){
+      if(inBoard(r+dir,c+dc)&&enemy(board[r+dir][c+dc],cl))moves.push([r+dir,c+dc]);
+      if(G.ep&&r+dir===G.ep[0]&&c+dc===G.ep[1])moves.push([r+dir,c+dc]);
+    }
+  }else if(type==='N'){
+    for(const[dr,dc]of[[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]]){
+      const nr=r+dr,nc=c+dc;
+      if(inBoard(nr,nc)&&(!board[nr][nc]||enemy(board[nr][nc],cl)))moves.push([nr,nc]);
+    }
+  }else if(type==='B'){slide(-1,-1);slide(-1,1);slide(1,-1);slide(1,1);}
+  else if(type==='R'){slide(-1,0);slide(1,0);slide(0,-1);slide(0,1);}
+  else if(type==='Q'){slide(-1,-1);slide(-1,1);slide(1,-1);slide(1,1);slide(-1,0);slide(1,0);slide(0,-1);slide(0,1);}
+  else if(type==='K'){
+    for(const[dr,dc]of[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]]){
+      const nr=r+dr,nc=c+dc;
+      if(inBoard(nr,nc)&&(!board[nr][nc]||enemy(board[nr][nc],cl)))moves.push([nr,nc]);
+    }
+    // Castling
+    if(cl==='w'&&r===7&&c===4){
+      if(G.castling.wK&&!board[7][5]&&!board[7][6])moves.push([7,6]);
+      if(G.castling.wQ&&!board[7][3]&&!board[7][2]&&!board[7][1])moves.push([7,2]);
+    }
+    if(cl==='b'&&r===0&&c===4){
+      if(G.castling.bK&&!board[0][5]&&!board[0][6])moves.push([0,6]);
+      if(G.castling.bQ&&!board[0][3]&&!board[0][2]&&!board[0][1])moves.push([0,2]);
+    }
+  }
+  return moves;
+}
+
+function findKing(board,cl){
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++)if(board[r][c]===(cl==='w'?'wK':'bK'))return[r,c];
+  return null;
+}
+
+function inCheck(board,cl){
+  const king=findKing(board,cl);if(!king)return false;
+  const opp=cl==='w'?'b':'w';
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+    if(board[r][c]&&color(board[r][c])===opp){
+      if(pseudoMoves(board,r,c).some(([tr,tc])=>tr===king[0]&&tc===king[1]))return true;
+    }
+  }
+  return false;
+}
+
+function applyMoveBoard(board,fr,fc,tr,tc){
+  const nb=cloneBoard(board),p=nb[fr][fc];
+  nb[tr][tc]=p;nb[fr][fc]=null;
+  // En passant capture
+  if(p[1]==='P'&&G.ep&&tr===G.ep[0]&&tc===G.ep[1]){
+    const capRow=color(p)==='w'?tr+1:tr-1;
+    nb[capRow][tc]=null;
+  }
+  // Castling rook
+  if(p==='wK'&&fr===7&&fc===4){
+    if(tc===6){nb[7][5]=nb[7][7];nb[7][7]=null;}
+    if(tc===2){nb[7][3]=nb[7][0];nb[7][0]=null;}
+  }
+  if(p==='bK'&&fr===0&&fc===4){
+    if(tc===6){nb[0][5]=nb[0][7];nb[0][7]=null;}
+    if(tc===2){nb[0][3]=nb[0][0];nb[0][0]=null;}
+  }
+  // Promotion
+  if(p==='wP'&&tr===0)nb[tr][tc]='wQ';
+  if(p==='bP'&&tr===7)nb[tr][tc]='bQ';
+  return nb;
+}
+
+function legalMoves(board,r,c){
+  const p=board[r][c];if(!p)return[];
+  const cl=color(p);
+  return pseudoMoves(board,r,c).filter(([tr,tc])=>{
+    const nb=applyMoveBoard(board,r,c,tr,tc);
+    return !inCheck(nb,cl);
+  });
+}
+
+// Notation
+const FILES='abcdefgh';
+function toAN(board,fr,fc,tr,tc){
+  const p=board[fr][fc];if(!p)return'?';
+  const type=p[1],cl=color(p);
+  const cap=board[tr][tc]||(p[1]==='P'&&G.ep&&tr===G.ep[0]&&tc===G.ep[1]);
+  let s='';
+  if(type==='K'){
+    if(fc===4&&tc===6)return'O-O';
+    if(fc===4&&tc===2)return'O-O-O';
+  }
+  if(type!=='P')s+=type==='N'?'N':type;
+  if(type==='P'&&cap)s+=FILES[fc];
+  if(cap)s+='x';
+  s+=FILES[tc]+(8-tr);
+  if(type==='P'&&(tr===0||tr===7))s+='=Q';
+  const nb=applyMoveBoard(board,fr,fc,tr,tc);
+  const opp=cl==='w'?'b':'w';
+  if(inCheck(nb,opp))s+='+';
+  return s;
+}
+
+// FEN encode
+function boardToFEN(){
+  let fen='';
+  for(let r=0;r<8;r++){
+    let empty=0;
+    for(let c=0;c<8;c++){
+      const p=G.board[r][c];
+      if(!p){empty++;}else{
+        if(empty){fen+=empty;empty=0;}
+        const map={wK:'K',wQ:'Q',wR:'R',wB:'B',wN:'N',wP:'P',bK:'k',bQ:'q',bR:'r',bB:'b',bN:'n',bP:'p'};
+        fen+=map[p];
+      }
+    }
+    if(empty)fen+=empty;
+    if(r<7)fen+='/';
+  }
+  fen+=' '+(G.turn==='w'?'w':'b');
+  let cast='';
+  if(G.castling.wK)cast+='K';if(G.castling.wQ)cast+='Q';
+  if(G.castling.bK)cast+='k';if(G.castling.bQ)cast+='q';
+  fen+=' '+(cast||'-');
+  fen+=' '+(G.ep?FILES[G.ep[1]]+(8-G.ep[0]):'-');
+  fen+=' 0 1';
+  return fen;
+}
+
+// FEN decode
+function parseFEN(fen){
+  try{
+    const parts=fen.trim().split(/\s+/);
+    const rows=parts[0].split('/');
+    const board=[];
+    const pieceMap={K:'wK',Q:'wQ',R:'wR',B:'wB',N:'wN',P:'wP',k:'bK',q:'bQ',r:'bR',b:'bB',n:'bN',p:'bP'};
+    for(const row of rows){
+      const r=[];
+      for(const ch of row){
+        if(/\d/.test(ch))for(let i=0;i<+ch;i++)r.push(null);
+        else r.push(pieceMap[ch]||null);
+      }
+      board.push(r);
+    }
+    const turn=(parts[1]||'w')==='w'?'w':'b';
+    const cast=parts[2]||'';
+    const castling={wK:cast.includes('K'),wQ:cast.includes('Q'),bK:cast.includes('k'),bQ:cast.includes('q')};
+    let ep=null;
+    if(parts[3]&&parts[3]!=='-'){const f=parts[3].charCodeAt(0)-97,r2=8-parseInt(parts[3][1]);ep=[r2,f];}
+    return{board,turn,castling,ep};
+  }catch(e){return null;}
+}
+
+// PGN parser (simple)
+function parsePGN(pgn){
+  // Strip headers
+  const moves=pgn.replace(/\[[^\]]*\]/g,'').replace(/\{[^}]*\}/g,'').replace(/\d+\.\.\./g,'').trim();
+  const tokens=moves.split(/\s+/).filter(t=>t&&!/^\d+\./.test(t)&&t!=='*'&&t!=='1-0'&&t!=='0-1'&&t!=='1/2-1/2');
+  return tokens;
+}
+
+function applyANMove(board,turn,san){
+  // Try all legal moves and match notation
+  for(let r=0;r<8;r++){
+    for(let c=0;c<8;c++){
+      if(board[r][c]&&color(board[r][c])===turn){
+        const legals=legalMoves(board,r,c);
+        for(const[tr,tc] of legals){
+          const an=toAN(board,r,c,tr,tc);
+          if(an===san||an.replace('+','').replace('#','')===san.replace('+','').replace('#','')){
+            const nb=applyMoveBoard(board,r,c,tr,tc);
+            return{board:nb,from:[r,c],to:[tr,tc]};
+          }
+        }
+      }
+    }
+  }
+  return null;
+}
+
+// ─── DISPLAY STATE ───────────────────────────────
+let selectedSq=null;
+let legalSqs=[];
+let lastFrom=null, lastTo=null;
+
+function render(){
+  const board=document.getElementById('board');
+  if(!board)return;
+  board.innerHTML='';
+  const displayBoard=G.flipped?G.board.slice().reverse().map(r=>[...r].reverse()):G.board;
+  for(let dr=0;dr<8;dr++){
+    for(let dc=0;dc<8;dc++){
+      const r=G.flipped?7-dr:dr, c=G.flipped?7-dc:dc;
+      const sq=document.createElement('div');
+      sq.className='sq '+(((dr+dc)%2===0)?'light':'dark');
+      sq.dataset.r=r; sq.dataset.c=c;
+      // highlights
+      const isLast=(lastFrom&&lastFrom[0]===r&&lastFrom[1]===c);
+      const isLastTo=(lastTo&&lastTo[0]===r&&lastTo[1]===c);
+      const isSel=(selectedSq&&selectedSq[0]===r&&selectedSq[1]===c);
+      const isLegal=legalSqs.some(([lr,lc])=>lr===r&&lc===c);
+      if(isLast)sq.classList.add('last-from');
+      if(isLastTo)sq.classList.add('last-to');
+      if(isSel)sq.classList.add('sel');
+      if(isLegal){
+        sq.classList.add('legal');
+        if(G.board[r][c])sq.classList.add('has-piece');
+      }
+      // Check highlight
+      if(inCheck(G.board,G.turn)){
+        const king=findKing(G.board,G.turn);
+        if(king&&king[0]===r&&king[1]===c)sq.classList.add('check');
+      }
+      if(G.board[r][c]){
+        const p=document.createElement('span');
+        p.className='piece';
+        p.textContent=PIECES[G.board[r][c]]||'';
+        sq.appendChild(p);
+      }
+      sq.addEventListener('click',()=>handleClick(r,c));
+      board.appendChild(sq);
+    }
+  }
+  // Coords
+  const fc=document.getElementById('fileCoords');
+  if(fc){fc.innerHTML='';(G.flipped?[...'hgfedcba']:[...'abcdefgh']).forEach(f=>{const s=document.createElement('span');s.textContent=f;fc.appendChild(s)});}
+  const rc=document.getElementById('rankCoords');
+  if(rc){rc.innerHTML='';const ranks=G.flipped?[1,2,3,4,5,6,7,8]:[8,7,6,5,4,3,2,1];ranks.forEach(r2=>{const s=document.createElement('span');s.textContent=r2;rc.appendChild(s)});}
+  // Turn indicators
+  const topTurn=document.getElementById('topTurn'),botTurn=document.getElementById('botTurn');
+  if(topTurn&&botTurn){
+    const topIsWhite=G.flipped;
+    topTurn.style.display=(G.turn==='w'&&topIsWhite||G.turn==='b'&&!topIsWhite)?'flex':'none';
+    botTurn.style.display=(G.turn==='w'&&!topIsWhite||G.turn==='b'&&topIsWhite)?'flex':'none';
+  }
+  updateFENBar();
+}
+
+function updateFENBar(){
+  const fi=document.getElementById('fenInp');
+  if(fi)fi.value=boardToFEN();
+}
+
+function canMove(){
+  if(G.editMode)return false;
+  if(SESSION.role==='coach')return true;
+  return G.studentCanMove;
+}
+
+function handleClick(r,c){
+  if(G.editMode){
+    handleEditClick(r,c);return;
+  }
+  if(!canMove())return;
+  const p=G.board[r][c];
+  if(selectedSq){
+    const[fr,fc2]=selectedSq;
+    const isLegal=legalSqs.some(([lr,lc])=>lr===r&&lc===c);
+    if(isLegal){
+      executeMove(fr,fc2,r,c);
+      return;
+    }
+    if(p&&color(p)===G.turn){
+      selectedSq=[r,c];
+      legalSqs=legalMoves(G.board,r,c);
+      render();return;
+    }
+    selectedSq=null;legalSqs=[];render();return;
+  }
+  if(p&&color(p)===G.turn){
+    selectedSq=[r,c];
+    legalSqs=legalMoves(G.board,r,c);
+    render();
+  }
+}
+
+function executeMove(fr,fc2,tr,tc){
+  const p=G.board[fr][fc2];
+  const notation=toAN(G.board,fr,fc2,tr,tc);
+  const fenBefore=boardToFEN();
+  // Update EP
+  G.ep=null;
+  if(p[1]==='P'&&Math.abs(tr-fr)===2)G.ep=[(fr+tr)/2,fc2];
+  // Update castling rights
+  if(p==='wK')G.castling.wK=G.castling.wQ=false;
+  if(p==='bK')G.castling.bK=G.castling.bQ=false;
+  if(p==='wR'&&fr===7&&fc2===0)G.castling.wQ=false;
+  if(p==='wR'&&fr===7&&fc2===7)G.castling.wK=false;
+  if(p==='bR'&&fr===0&&fc2===0)G.castling.bQ=false;
+  if(p==='bR'&&fr===0&&fc2===7)G.castling.bK=false;
+  const cap=G.board[tr][tc];
+  G.board=applyMoveBoard(G.board,fr,fc2,tr,tc);
+  G.turn=G.turn==='w'?'b':'w';
+  G.history.splice(G.histIdx+1);
+  G.history.push({from:[fr,fc2],to:[tr,tc],piece:p,cap,notation,fen:fenBefore});
+  G.histIdx=G.history.length-1;
+  lastFrom=[fr,fc2];lastTo=[tr,tc];
+  selectedSq=null;legalSqs=[];
+  render();
+  renderNotation();
+  broadcastMove(fr,fc2,tr,tc,notation);
+}
+
+function renderNotation(){
+  const wrap=document.getElementById('notationWrap');
+  if(!wrap)return;
+  if(!G.history.length){wrap.innerHTML='<span style="color:var(--text3);font-size:12px">No moves yet.</span>';return;}
+  let html='';
+  for(let i=0;i<G.history.length;i++){
+    if(i%2===0)html+=`<span class="mv-num">${Math.floor(i/2)+1}.</span>`;
+    const cur=i===G.histIdx;
+    html+=`<span class="mv${cur?' cur':''}" onclick="gotoMove(${i})">${G.history[i].notation}</span>`;
+  }
+  wrap.innerHTML=html;
+  wrap.scrollLeft=wrap.scrollWidth;
+}
+
+function gotoMove(idx){
+  // Reset to start and replay
+  G.board=startBoard();
+  G.turn='w';
+  G.castling={wK:true,wQ:true,bK:true,bQ:true};
+  G.ep=null;
+  lastFrom=null;lastTo=null;
+  for(let i=0;i<=idx;i++){
+    const h=G.history[i];
+    G.board=applyMoveBoard(G.board,h.from[0],h.from[1],h.to[0],h.to[1]);
+    G.turn=G.turn==='w'?'b':'w';
+    lastFrom=h.from;lastTo=h.to;
+  }
+  G.histIdx=idx;
+  selectedSq=null;legalSqs=[];
+  render();renderNotation();
+}
+
+// Edit mode
+let editPiece=null;
+const EDIT_PIECES=['wK','wQ','wR','wB','wN','wP','bK','bQ','bR','bB','bN','bP'];
+
+function toggleEditMode(){
+  G.editMode=!G.editMode;
+  const btn=document.getElementById('editBtn');
+  if(btn)btn.classList.toggle('on',G.editMode);
+  if(G.editMode){
+    showEditPicker();
+    toast('Edit mode: click a piece type, then click a square','#c9a84c');
+  }else{
+    const ep=document.getElementById('editPicker');
+    if(ep)ep.remove();
+    editPiece=null;
+    toast('Edit mode off','#3ecf8e');
+  }
+}
+
+function showEditPicker(){
+  let el=document.getElementById('editPicker');
+  if(el)el.remove();
+  el=document.createElement('div');
+  el.id='editPicker';
+  el.style.cssText='display:flex;flex-wrap:wrap;gap:4px;padding:8px 14px;background:var(--bg2);border-bottom:1px solid var(--border);';
+  EDIT_PIECES.forEach(pc=>{
+    const btn=document.createElement('button');
+    btn.style.cssText='width:34px;height:34px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);font-size:20px;cursor:pointer;transition:.12s;display:flex;align-items:center;justify-content:center;';
+    btn.textContent=PIECES[pc];
+    btn.title=pc;
+    btn.onclick=()=>{
+      editPiece=pc;
+      el.querySelectorAll('button').forEach(b=>b.style.background='var(--bg3)');
+      btn.style.background='var(--gold2)';
+      btn.style.borderColor='rgba(201,168,76,.4)';
+    };
+    el.appendChild(btn);
+  });
+  // Eraser
+  const er=document.createElement('button');
+  er.style.cssText='padding:0 10px;height:34px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);font-size:12px;font-weight:600;color:var(--red);cursor:pointer;';
+  er.textContent='✕ Erase';
+  er.onclick=()=>{editPiece=null;el.querySelectorAll('button').forEach(b=>b.style.background='var(--bg3)');er.style.background='rgba(229,100,90,.12)';};
+  el.appendChild(er);
+  const main=document.querySelector('.main');
+  const fenBar=document.getElementById('fenBar');
+  if(main&&fenBar)main.insertBefore(el,fenBar);
+}
+
+function handleEditClick(r,c){
+  if(editPiece!==undefined){
+    G.board[r][c]=editPiece||null;
+    render();updateFENBar();
+  }
+}
+
+// ─── TOOLBAR ACTIONS ─────────────────────────────
+function flipBoard(){G.flipped=!G.flipped;render();toast('Board flipped','#c9a84c');}
+function resetBoard(){
+  G.board=startBoard();G.turn='w';G.castling={wK:true,wQ:true,bK:true,bQ:true};G.ep=null;
+  G.history=[];G.histIdx=-1;lastFrom=null;lastTo=null;selectedSq=null;legalSqs=[];
+  render();renderNotation();toast('Board reset to starting position','#3ecf8e');
+}
+function clearBoard(){
+  G.board=Array(8).fill(null).map(()=>Array(8).fill(null));
+  render();updateFENBar();toast('Board cleared','#c9a84c');
+}
+function toggleStudentMove(){
+  G.studentCanMove=!G.studentCanMove;
+  const btn=document.getElementById('lockTxt');
+  if(btn)btn.textContent='Students: '+(G.studentCanMove?'Move':'Watch');
+  document.getElementById('lockBtn').classList.toggle('on',G.studentCanMove);
+  toast('Students can '+(G.studentCanMove?'now move pieces':'only watch'),'#c9a84c');
+}
+function loadFEN(){
+  const fen=document.getElementById('fenInp').value.trim();
+  if(!fen){toast('Paste a FEN string first','#e5645a');return;}
+  const parsed=parseFEN(fen);
+  if(!parsed){toast('Invalid FEN string','#e5645a');return;}
+  G.board=parsed.board;G.turn=parsed.turn;G.castling=parsed.castling;G.ep=parsed.ep;
+  G.history=[];G.histIdx=-1;lastFrom=null;lastTo=null;selectedSq=null;legalSqs=[];
+  render();renderNotation();toast('Position loaded from FEN','#3ecf8e');
+}
+function copyFEN(){
+  const fen=boardToFEN();
+  navigator.clipboard.writeText(fen).then(()=>toast('FEN copied to clipboard','#3ecf8e')).catch(()=>toast('FEN: '+fen.slice(0,40)+'…','#c9a84c'));
+}
+function loadPGN(){
+  const pgn=document.getElementById('pgnTa').value.trim();
+  if(!pgn){toast('Paste a PGN first','#e5645a');return;}
+  const tokens=parsePGN(pgn);
+  let board=startBoard();
+  let turn='w';
+  const tempCast={wK:true,wQ:true,bK:true,bQ:true};
+  G.ep=null;
+  const history=[];
+  let ok=true;
+  for(const san of tokens){
+    const result=applyANMoveFull(board,turn,san,tempCast);
+    if(!result){toast('Could not parse move: '+san,'#e5645a');ok=false;break;}
+    history.push({from:result.from,to:result.to,piece:result.piece,cap:result.cap,notation:san,fen:''});
+    board=result.board;
+    turn=turn==='w'?'b':'w';
+  }
+  if(ok&&history.length){
+    G.board=board;G.turn=turn;G.history=history;G.histIdx=history.length-1;
+    const last=history[history.length-1];lastFrom=last.from;lastTo=last.to;
+    selectedSq=null;legalSqs=[];
+    render();renderNotation();
+    toast('PGN loaded — '+history.length+' moves','#3ecf8e');
+  }
+}
+
+function applyANMoveFull(board,turn,san,castling){
+  const savedCast=G.castling;
+  G.castling=castling;
+  for(let r=0;r<8;r++){
+    for(let c=0;c<8;c++){
+      if(board[r][c]&&color(board[r][c])===turn){
+        const legals=legalMoves(board,r,c);
+        for(const[tr,tc] of legals){
+          const an=toAN(board,r,c,tr,tc);
+          const clean=s=>s.replace(/[+#]/g,'');
+          if(clean(an)===clean(san)){
+            const cap=board[tr][tc];
+            const nb=applyMoveBoard(board,r,c,tr,tc);
+            // update castling
+            if(board[r][c]==='wK')castling.wK=castling.wQ=false;
+            if(board[r][c]==='bK')castling.bK=castling.bQ=false;
+            G.castling=savedCast;
+            return{board:nb,from:[r,c],to:[tr,tc],piece:board[r][c],cap};
+          }
+        }
+      }
+    }
+  }
+  G.castling=savedCast;
+  return null;
+}
+
+// ─── VIDEO / WebRTC ───────────────────────────────
+let localStream=null;
+let micOn=true,camOn=false;
+const peers={};
+const SESSION={role:'coach',name:'',color:'#c9a84c',roomCode:''};
+
+async function startLocalMedia(){
+  try{
+    localStream=await navigator.mediaDevices.getUserMedia({video:true,audio:true});
+    toast('Camera & microphone connected','#3ecf8e');
+    camOn=true;micOn=true;
+    updateMediaBtns();
+    renderVideo();
+  }catch(e){
+    try{
+      localStream=await navigator.mediaDevices.getUserMedia({audio:true});
+      toast('Microphone connected (no camera)','#c9a84c');
+      micOn=true;camOn=false;
+      updateMediaBtns();
+      renderVideo();
+    }catch(e2){
+      toast('No camera/mic — video unavailable','#e5645a');
+      renderVideo();
+    }
+  }
+}
+
+function renderVideo(){
+  const sec=document.getElementById('videoSection');
+  if(!sec)return;
+  sec.innerHTML='';
+
+  // My tile (coach or student)
+  const myTile=makeTile(SESSION.name,SESSION.role,SESSION.color,localStream,true);
+  sec.appendChild(myTile);
+
+  // Remote participants (simulated in demo — show waiting tiles)
+  const remoteGrid=document.createElement('div');
+  remoteGrid.className='students-grid';
+  remoteGrid.id='remoteGrid';
+  sec.appendChild(remoteGrid);
+
+  // If we have real peer streams, add them; otherwise show waiting
+  const remotes=Object.entries(peers);
+  if(remotes.length===0){
+    const w=document.createElement('div');
+    w.className='waiting-tile';
+    w.innerHTML=SESSION.role==='coach'?'Waiting for students to join…':'Waiting for coach…';
+    w.style.gridColumn='1/-1';
+    remoteGrid.appendChild(w);
+  }else{
+    remotes.forEach(([id,{name,role,color,stream}])=>{
+      remoteGrid.appendChild(makeTile(name,role,color,stream,false));
+    });
+  }
+}
+
+function makeTile(name,role,col,stream,isMe){
+  const tile=document.createElement('div');
+  tile.className='vid-tile '+(role==='coach'?'coach-tile':'student-tile');
+  const inner=document.createElement('div');
+  inner.className='vid-inner';
+  if(stream){
+    const vid=document.createElement('video');
+    vid.autoplay=true;vid.playsInline=true;vid.muted=isMe;
+    vid.srcObject=stream;
+    if(camOn||!isMe)inner.appendChild(vid);
+  }
+  // Avatar fallback
+  const av=document.createElement('div');
+  av.className='vid-av';
+  av.style.cssText=`background:${col}22;color:${col};border:2px solid ${col}44;`;
+  av.textContent=name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  inner.appendChild(av);
+  if(!camOn&&isMe){
+    const nm=document.createElement('div');nm.className='no-cam-text';nm.textContent='Camera off';
+    inner.appendChild(nm);
+  }
+  const label=document.createElement('div');label.className='vid-label';
+  label.innerHTML=`<span>${name||(isMe?'You':'?')}</span><span class="vid-badge" style="background:${col}33;color:${col}">${role==='coach'?'Coach':'Student'}</span>`;
+  inner.appendChild(label);
+  tile.appendChild(inner);
+  return tile;
+}
+
+function toggleMic(){
+  if(!localStream){toast('No microphone connected','#e5645a');return;}
+  micOn=!micOn;
+  localStream.getAudioTracks().forEach(t=>t.enabled=micOn);
+  updateMediaBtns();
+  toast(micOn?'Mic on':'Mic muted',micOn?'#3ecf8e':'#c9a84c');
+}
+function toggleCam(){
+  if(!localStream||!localStream.getVideoTracks().length){
+    toast('No camera connected','#e5645a');return;
+  }
+  camOn=!camOn;
+  localStream.getVideoTracks().forEach(t=>t.enabled=camOn);
+  updateMediaBtns();
+  renderVideo();
+  toast(camOn?'Camera on':'Camera off',camOn?'#3ecf8e':'#c9a84c');
+}
+function updateMediaBtns(){
+  document.getElementById('micBtn')?.classList.toggle('on',micOn);
+  document.getElementById('camBtn')?.classList.toggle('on',camOn);
+}
+function raiseHand(){
+  toast(SESSION.name+' raised their hand ✋','#c9a84c');
+  broadcastChat('✋ '+SESSION.name+' raised their hand','system');
+}
+function endCall(){
+  if(confirm('Leave this classroom?')){
+    if(localStream)localStream.getTracks().forEach(t=>t.stop());
+    location.reload();
+  }
+}
+
+// ─── CHAT ─────────────────────────────────────────
+let chatHistory=[];
+function addChatMsg(name,role,color,text,type='normal'){
+  chatHistory.push({name,role,color,text,type});
+  renderChat();
+}
+function renderChat(){
+  const box=document.getElementById('chatMsgs');
+  if(!box)return;
+  box.innerHTML='';
+  chatHistory.forEach(m=>{
+    const row=document.createElement('div');row.className='c-msg';
+    if(m.type==='system'){
+      row.innerHTML=`<div style="color:var(--text3);font-size:11px;padding:2px 0;font-style:italic">${m.text}</div>`;
+    }else{
+      row.innerHTML=`
+        <div class="c-av" style="background:${m.color}22;color:${m.color}">${m.name.slice(0,2).toUpperCase()}</div>
+        <div>
+          <div class="c-who">${m.name} <span class="c-role" style="color:${m.color}">${m.role==='coach'?'Coach':'Student'}</span></div>
+          <div class="c-text">${m.text}</div>
+        </div>`;
+    }
+    box.appendChild(row);
+  });
+  box.scrollTop=box.scrollHeight;
+}
+function chatKey(e){if(e.key==='Enter')sendChat();}
+function sendChat(){
+  const inp=document.getElementById('chatInp');
+  if(!inp||!inp.value.trim())return;
+  addChatMsg(SESSION.name,SESSION.role,SESSION.color,inp.value);
+  broadcastChat(inp.value,'normal');
+  inp.value='';
+}
+function broadcastChat(text,type){
+  // In real implementation: send via WebRTC data channel / signaling server
+  // Here we simulate receiving our own message
+}
+function broadcastMove(fr,fc2,tr,tc,notation){
+  // Real: send to peers
+}
+
+// ─── ROOM / SIGNALING ─────────────────────────────
+// In a real app, you'd use WebSockets + WebRTC (STUN/TURN).
+// Here we use BroadcastChannel (same-origin tabs) to simulate multi-tab operation.
+let bc=null;
+
+function setupChannel(code){
+  try{
+    bc=new BroadcastChannel('educhess-'+code);
+    bc.onmessage=e=>{
+      const msg=e.data;
+      if(msg.type==='move'){
+        // Remote move
+        if(!canMoveRemote())applyRemoteMove(msg);
+      }else if(msg.type==='chat'){
+        addChatMsg(msg.name,msg.role,msg.color,msg.text,msg.msgType);
+      }else if(msg.type==='fen'){
+        const parsed=parseFEN(msg.fen);
+        if(parsed){G.board=parsed.board;G.turn=parsed.turn;G.ep=parsed.ep;render();}
+      }else if(msg.type==='join'){
+        toast(msg.name+' joined the classroom','#3ecf8e');
+        addChatMsg('System','coach','#3ecf8e','📍 '+msg.name+' joined','system');
+        peers[msg.id]={name:msg.name,role:msg.role,color:msg.color,stream:null};
+        renderVideo();
+        // Send current board state to new joiner
+        if(SESSION.role==='coach'){
+          bc.postMessage({type:'fen',fen:boardToFEN()});
+        }
+      }else if(msg.type==='lock'){
+        G.studentCanMove=msg.val;
+        toast('Board control: '+(msg.val?'you can move':'watch only'),'#c9a84c');
+      }
+    };
+  }catch(e){console.log('BroadcastChannel not supported');}
+}
+
+function canMoveRemote(){
+  return SESSION.role==='coach';
+}
+
+function applyRemoteMove(msg){
+  const{fr,fc,tr,tc}=msg;
+  if(G.board[fr][fc]){
+    G.ep=null;
+    if(G.board[fr][fc][1]==='P'&&Math.abs(tr-fr)===2)G.ep=[(fr+tr)/2,fc];
+    const p=G.board[fr][fc];
+    if(p==='wK')G.castling.wK=G.castling.wQ=false;
+    if(p==='bK')G.castling.bK=G.castling.bQ=false;
+    const notation=toAN(G.board,fr,fc,tr,tc);
+    const cap=G.board[tr][tc];
+    G.board=applyMoveBoard(G.board,fr,fc,tr,tc);
+    G.turn=G.turn==='w'?'b':'w';
+    G.history.splice(G.histIdx+1);
+    G.history.push({from:[fr,fc],to:[tr,tc],piece:p,cap,notation,fen:''});
+    G.histIdx=G.history.length-1;
+    lastFrom=[fr,fc];lastTo=[tr,tc];
+    selectedSq=null;legalSqs=[];
+    render();renderNotation();
+  }
+}
+
+// Override broadcastMove to send via channel
+function broadcastMove(fr,fc2,tr,tc,notation){
+  if(bc)bc.postMessage({type:'move',fr,fc:fc2,tr,tc,notation});
+}
+function broadcastChat(text,type){
+  if(bc&&type!=='system')bc.postMessage({type:'chat',name:SESSION.name,role:SESSION.role,color:SESSION.color,text,msgType:type});
+}
+
+// ─── LOBBY ────────────────────────────────────────
+let userRole='coach';
+function setRole(r){
+  userRole=r;
+  document.getElementById('roleCoach').classList.toggle('sel',r==='coach');
+  document.getElementById('roleStudent').classList.toggle('sel',r==='student');
+  document.getElementById('coachArea').style.display=r==='coach'?'':'none';
+  document.getElementById('studentArea').style.display=r==='student'?'':'none';
+}
+
+// Generate room code
+function genCode(){
+  const letters='ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const nums='23456789';
+  const code='ECH-'+[...Array(4)].map(()=>nums[Math.random()*nums.length|0]).join('');
+  document.getElementById('genCode').textContent=code;
+  return code;
+}
+let currentRoomCode=genCode();
+function copyCode(){
+  navigator.clipboard.writeText(currentRoomCode).catch(()=>{});
+  toast('Room code copied!','#3ecf8e');
+}
+
+const STUDENT_COLORS=['#5b8dee','#e5645a','#3ecf8e','#f0a840','#a06ef5','#6ac4e8'];
+function randColor(){return STUDENT_COLORS[Math.floor(Math.random()*STUDENT_COLORS.length)];}
+
+function createRoom(){
+  const name=document.getElementById('nameInp').value.trim();
+  if(!name){toast('Enter your name','#e5645a');return;}
+  SESSION.role='coach';SESSION.name=name;SESSION.color='#c9a84c';
+  SESSION.roomCode=document.getElementById('genCode').textContent;
+  enterApp();
+}
+
+function joinRoom(){
+  const name=document.getElementById('nameInp').value.trim();
+  const code=document.getElementById('codeInp').value.trim().toUpperCase();
+  if(!name){toast('Enter your name','#e5645a');return;}
+  if(!code||code.length<4){
+    document.getElementById('codeError').style.display='block';return;
+  }
+  document.getElementById('codeError').style.display='none';
+  SESSION.role='student';SESSION.name=name;SESSION.color=randColor();
+  SESSION.roomCode=code;
+  enterApp();
+}
+
+function enterApp(){
+  document.getElementById('lobby').style.display='none';
+  const app=document.getElementById('app');
+  app.classList.add('visible');
+  // Set header
+  document.getElementById('hdrSession').textContent=SESSION.role==='coach'?SESSION.name+''s Classroom':'Live Classroom';
+  document.getElementById('hdrRoom').textContent='Room: '+SESSION.roomCode;
+  document.getElementById('userName').textContent=SESSION.name;
+  document.getElementById('userRoleLbl').textContent=SESSION.role==='coach'?'Coach':'Student';
+  const av=document.getElementById('userAv');
+  av.textContent=SESSION.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  av.style.background=SESSION.color+'22';av.style.color=SESSION.color;
+  // Coach-only UI
+  const coachToolbar=document.getElementById('coachToolbar');
+  if(coachToolbar)coachToolbar.style.display=SESSION.role==='coach'?'flex':'none';
+  // Init
+  G.board=startBoard();
+  render();renderNotation();
+  setupChannel(SESSION.roomCode);
+  // Announce join
+  if(bc)bc.postMessage({type:'join',id:Math.random().toString(36).slice(2),name:SESSION.name,role:SESSION.role,color:SESSION.color});
+  // Welcome chat
+  addChatMsg('EduChess','system','#c9a84c','Welcome to the classroom, '+SESSION.name+'! '+( SESSION.role==='coach'?'Your room code is '+SESSION.roomCode+'. Share it with students.':'Waiting for the coach to begin…'),'system');
+  // Start media
+  startLocalMedia();
+  // Adjust board size
+  adjustBoardSize();
+  window.addEventListener('resize',adjustBoardSize);
+  // Toast
+  setTimeout(()=>toast(SESSION.role==='coach'?'Room created — share code '+SESSION.roomCode+' with students':'Joined classroom '+SESSION.roomCode,'#3ecf8e'),300);
+}
+
+function adjustBoardSize(){
+  const bw=document.querySelector('.board-wrap');
+  if(!bw)return;
+  const h=bw.clientHeight-160,w=bw.clientWidth-60;
+  const size=Math.min(h,w,540);
+  const b=document.getElementById('board');
+  if(b){b.style.width=size+'px';b.style.height=size+'px';}
+}
+
+// ─── UI HELPERS ──────────────────────────────────
+function rTab(el,name){
+  document.querySelectorAll('.r-tab').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+  document.querySelectorAll('.r-view').forEach(v=>v.classList.remove('on'));
+  document.getElementById('r-'+name).classList.add('on');
+}
+
+function toast(msg,color='#c9a84c'){
+  const c=document.getElementById('toasts');
+  const t=document.createElement('div');
+  t.className='toast';
+  t.innerHTML=`<span class="t-dot" style="background:${color}"></span>${msg}`;
+  c.appendChild(t);
+  setTimeout(()=>t.remove(),3200);
+}
+
+// Set student area hidden initially
+document.getElementById('studentArea').style.display='none';
+</script>
+</body>
+</html>
