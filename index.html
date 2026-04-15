@@ -1057,7 +1057,7 @@ function applyANMoveFull(board,turn,san,castling){
 let localStream=null;
 let micOn=true,camOn=false;
 const peers={};
-const SESSION={role:'coach',name:'',color:'#c9a84c',roomCode:''};
+const SESSION={role:'coach',name:'',color:'#c9a84c',roomCode:'',roomOwner:false};
 
 async function startLocalMedia(){
   try{
@@ -1307,11 +1307,37 @@ function copyCode(){
 const STUDENT_COLORS=['#5b8dee','#e5645a','#3ecf8e','#f0a840','#a06ef5','#6ac4e8'];
 function randColor(){return STUDENT_COLORS[Math.floor(Math.random()*STUDENT_COLORS.length)];}
 
+function syncRoomInputs(){
+  const code=(SESSION.roomCode||document.getElementById('genCode')?.textContent||makeCode()).toUpperCase();
+  SESSION.roomCode=code;
+  const gen=document.getElementById('genCode');
+  const inp=document.getElementById('codeInp');
+  if(gen)gen.textContent=code;
+  if(inp && !inp.value.trim())inp.value=code;
+}
+
+function updateUrlWithRoom(){
+  if(!SESSION.roomCode)return;
+  const url=new URL(window.location.href);
+  url.searchParams.set('room',SESSION.roomCode);
+  history.replaceState({},'',url.toString());
+}
+
+function readRoomFromUrl(){
+  const url=new URL(window.location.href);
+  return (url.searchParams.get('room')||'').trim().toUpperCase();
+}
+
 function createRoom(){
   const name=document.getElementById('nameInp').value.trim();
   if(!name){toast('Enter your name','#e5645a');return;}
-  SESSION.role='coach';SESSION.name=name;SESSION.color='#c9a84c';
-  SESSION.roomCode=document.getElementById('genCode').textContent;
+  SESSION.role='coach';
+  SESSION.name=name;
+  SESSION.color='#c9a84c';
+  SESSION.roomOwner=true;
+  SESSION.roomCode=(document.getElementById('genCode').textContent||makeCode()).trim().toUpperCase();
+  syncRoomInputs();
+  updateUrlWithRoom();
   enterApp();
 }
 
@@ -1319,12 +1345,18 @@ function joinRoom(){
   const name=document.getElementById('nameInp').value.trim();
   const code=document.getElementById('codeInp').value.trim().toUpperCase();
   if(!name){toast('Enter your name','#e5645a');return;}
-  if(!code||code.length<4){
-    document.getElementById('codeError').style.display='block';return;
+  if(!/^[A-Z0-9]{4,10}$/.test(code)){
+    document.getElementById('codeError').style.display='block';
+    document.getElementById('codeError').textContent='Enter a valid room code (4-10 letters or numbers).';
+    return;
   }
   document.getElementById('codeError').style.display='none';
-  SESSION.role='student';SESSION.name=name;SESSION.color=randColor();
+  SESSION.role='student';
+  SESSION.name=name;
+  SESSION.color=randColor();
+  SESSION.roomOwner=false;
   SESSION.roomCode=code;
+  updateUrlWithRoom();
   enterApp();
 }
 
@@ -1334,7 +1366,7 @@ function enterApp(){
   app.classList.add('visible');
   // Set header
   document.getElementById('hdrSession').textContent=SESSION.role==='coach'?SESSION.name+''s Classroom':'Live Classroom';
-  document.getElementById('hdrRoom').textContent='Room: '+SESSION.roomCode;
+  document.getElementById('hdrRoom').textContent='Room: '+SESSION.roomCode+(SESSION.roomOwner?' · Share this code':'');
   document.getElementById('userName').textContent=SESSION.name;
   document.getElementById('userRoleLbl').textContent=SESSION.role==='coach'?'Coach':'Student';
   const av=document.getElementById('userAv');
