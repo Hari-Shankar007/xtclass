@@ -381,7 +381,7 @@ input,textarea,select{font-family:var(--font);outline:none}
     <div id="studentArea" style="display:none">
       <div class="field">
         <div class="lbl">Room Code</div>
-        <input class="inp" id="codeInp" placeholder="e.g. ECH-4821" type="text" maxlength="8" style="letter-spacing:2px;font-family:var(--mono);font-size:16px">
+        <input class="inp" id="codeInp" placeholder="e.g. ECH-4821" type="text" maxlength="10" autocapitalize="characters" autocomplete="off" spellcheck="false" style="letter-spacing:2px;font-family:var(--mono);font-size:16px;text-transform:uppercase">
         <div class="error-msg" id="codeError">Room not found. Double-check the code.</div>
       </div>
       <button class="btn-primary" onclick="joinRoom()">Join Classroom</button>
@@ -1300,6 +1300,7 @@ function genCode(){
 }
 let currentRoomCode=genCode();
 function copyCode(){
+  currentRoomCode=(SESSION.roomCode||document.getElementById('genCode')?.textContent||currentRoomCode||'').toUpperCase();
   navigator.clipboard.writeText(currentRoomCode).catch(()=>{});
   toast('Room code copied!','#3ecf8e');
 }
