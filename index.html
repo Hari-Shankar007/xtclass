@@ -1371,7 +1371,7 @@ const STUDENT_COLORS=['#5b8dee','#e5645a','#3ecf8e','#f0a840','#a06ef5','#6ac4e8
 function randColor(){return STUDENT_COLORS[Math.floor(Math.random()*STUDENT_COLORS.length)];}
 
 function syncRoomInputs(){
-  const code=(SESSION.roomCode||document.getElementById('genCode')?.textContent||makeCode()).toUpperCase();
+  const code=(SESSION.roomCode||document.getElementById('genCode')?.textContent||genCode()).toUpperCase();
   SESSION.roomCode=code;
   const gen=document.getElementById('genCode');
   const inp=document.getElementById('codeInp');
