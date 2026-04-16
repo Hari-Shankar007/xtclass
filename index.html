@@ -1220,7 +1220,63 @@ function broadcastMove(fr,fc2,tr,tc,notation){
 // ─── ROOM / SIGNALING ─────────────────────────────
 // In a real app, you'd use WebSockets + WebRTC (STUN/TURN).
 // Here we use BroadcastChannel (same-origin tabs) to simulate multi-tab operation.
-let bc=null;
+let roomRef=null;
+const myId=Math.random().toString(36).slice(2);
+function setupChannel(code){
+  roomRef=db.ref('rooms/'+code);
+  const meRef=roomRef.child('members/'+myId);
+  meRef.set({name:SESSION.name,role:SESSION.role,color:SESSION.color});
+  meRef.onDisconnect().remove();
+  if(SESSION.role==='coach'){roomRef.child('fen').set(boardToFEN());roomRef.child('lock').set(false);}
+  roomRef.child('fen').on('value',snap=>{
+    if(!snap.val()||SESSION.role!=='student')return;
+    const parsed=parseFEN(snap.val());
+    if(parsed){G.board=parsed.board;G.turn=parsed.turn;G.castling=parsed.castling;G.ep=parsed.ep;render();}
+  });
+  roomRef.child('lastMove').on('value',snap=>{
+    const m=snap.val();if(!m||m.by===myId)return;applyRemoteMove(m);
+  });
+  roomRef.child('chat').limitToLast(50).on('child_added',snap=>{
+    const m=snap.val();if(!m||m.by===myId)return;
+    addChatMsg(m.name,m.role,m.color,m.text,m.type||'normal');
+  });
+  roomRef.child('lock').on('value',snap=>{
+    if(SESSION.role==='student'){G.studentCanMove=snap.val()||false;toast('Board control: '+(G.studentCanMove?'you can move':'watch only'),'#c9a84c');}
+  });
+  roomRef.child('members').on('child_added',snap=>{
+    const m=snap.val();if(!m||snap.key===myId)return;
+    toast(m.name+' joined the classroom','#3ecf8e');
+    addChatMsg('System','system','#3ecf8e','📍 '+m.name+' joined','system');
+  });
+}
+function broadcastMove(fr,fc2,tr,tc,notation){
+  if(!roomRef)return;
+  roomRef.child('lastMove').set({fr,fc:fc2,tr,tc,notation,by:myId});
+  if(SESSION.role==='coach')roomRef.child('fen').set(boardToFEN());
+}
+function broadcastChat(text,type){
+  if(!roomRef||type==='system')return;
+  roomRef.child('chat').push({name:SESSION.name,role:SESSION.role,color:SESSION.color,text,type,by:myId});
+}
+function applyRemoteMove(msg){
+  const{fr,fc,tr,tc}=msg;
+  if(!G.board[fr][fc])return;
+  G.ep=null;
+  if(G.board[fr][fc][1]==='P'&&Math.abs(tr-fr)===2)G.ep=[(fr+tr)/2,fc];
+  const p=G.board[fr][fc];
+  if(p==='wK'){G.castling.wK=G.castling.wQ=false;}
+  if(p==='bK'){G.castling.bK=G.castling.bQ=false;}
+  const notation=toAN(G.board,fr,fc,tr,tc);
+  const cap=G.board[tr][tc];
+  G.board=applyMoveBoard(G.board,fr,fc,tr,tc);
+  G.turn=G.turn==='w'?'b':'w';
+  G.history.splice(G.histIdx+1);
+  G.history.push({from:[fr,fc],to:[tr,tc],piece:p,cap,notation,fen:''});
+  G.histIdx=G.history.length-1;
+  lastFrom=[fr,fc];lastTo=[tr,tc];
+  selectedSq=null;legalSqs=[];
+  render();renderNotation();
+}
 
 function setupChannel(code){
   try{
