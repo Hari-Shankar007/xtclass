@@ -1398,7 +1398,7 @@ function createRoom(){
   SESSION.name=name;
   SESSION.color='#c9a84c';
   SESSION.roomOwner=true;
-  SESSION.roomCode=(document.getElementById('genCode').textContent||makeCode()).trim().toUpperCase();
+  SESSION.roomCode=(document.getElementById('genCode').textContent||genCode()).trim().toUpperCase();
   syncRoomInputs();
   updateUrlWithRoom();
   enterApp();
