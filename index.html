@@ -1385,7 +1385,6 @@ function enterApp(){
   render();renderNotation();
   setupChannel(SESSION.roomCode);
   // Announce join
-  if(bc)bc.postMessage({type:'join',id:Math.random().toString(36).slice(2),name:SESSION.name,role:SESSION.role,color:SESSION.color});
   // Welcome chat
   addChatMsg('EduChess','system','#c9a84c','Welcome to the classroom, '+SESSION.name+'! '+( SESSION.role==='coach'?'Your room code is '+SESSION.roomCode+'. Share it with students.':'Waiting for the coach to begin…'),'system');
   // Start media
