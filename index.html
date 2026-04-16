@@ -1282,68 +1282,7 @@ function applyRemoteMove(msg){
   render();renderNotation();
 }
 
-function setupChannel(code){
-  try{
-    bc=new BroadcastChannel('educhess-'+code);
-    bc.onmessage=e=>{
-      const msg=e.data;
-      if(msg.type==='move'){
-        // Remote move
-        if(!canMoveRemote())applyRemoteMove(msg);
-      }else if(msg.type==='chat'){
-        addChatMsg(msg.name,msg.role,msg.color,msg.text,msg.msgType);
-      }else if(msg.type==='fen'){
-        const parsed=parseFEN(msg.fen);
-        if(parsed){G.board=parsed.board;G.turn=parsed.turn;G.ep=parsed.ep;render();}
-      }else if(msg.type==='join'){
-        toast(msg.name+' joined the classroom','#3ecf8e');
-        addChatMsg('System','coach','#3ecf8e','📍 '+msg.name+' joined','system');
-        peers[msg.id]={name:msg.name,role:msg.role,color:msg.color,stream:null};
-        renderVideo();
-        // Send current board state to new joiner
-        if(SESSION.role==='coach'){
-          bc.postMessage({type:'fen',fen:boardToFEN()});
-        }
-      }else if(msg.type==='lock'){
-        G.studentCanMove=msg.val;
-        toast('Board control: '+(msg.val?'you can move':'watch only'),'#c9a84c');
-      }
-    };
-  }catch(e){console.log('BroadcastChannel not supported');}
-}
 
-function canMoveRemote(){
-  return SESSION.role==='coach';
-}
-
-function applyRemoteMove(msg){
-  const{fr,fc,tr,tc}=msg;
-  if(G.board[fr][fc]){
-    G.ep=null;
-    if(G.board[fr][fc][1]==='P'&&Math.abs(tr-fr)===2)G.ep=[(fr+tr)/2,fc];
-    const p=G.board[fr][fc];
-    if(p==='wK')G.castling.wK=G.castling.wQ=false;
-    if(p==='bK')G.castling.bK=G.castling.bQ=false;
-    const notation=toAN(G.board,fr,fc,tr,tc);
-    const cap=G.board[tr][tc];
-    G.board=applyMoveBoard(G.board,fr,fc,tr,tc);
-    G.turn=G.turn==='w'?'b':'w';
-    G.history.splice(G.histIdx+1);
-    G.history.push({from:[fr,fc],to:[tr,tc],piece:p,cap,notation,fen:''});
-    G.histIdx=G.history.length-1;
-    lastFrom=[fr,fc];lastTo=[tr,tc];
-    selectedSq=null;legalSqs=[];
-    render();renderNotation();
-  }
-}
-
-// Override broadcastMove to send via channel
-function broadcastMove(fr,fc2,tr,tc,notation){
-  if(bc)bc.postMessage({type:'move',fr,fc:fc2,tr,tc,notation});
-}
-function broadcastChat(text,type){
-  if(bc&&type!=='system')bc.postMessage({type:'chat',name:SESSION.name,role:SESSION.role,color:SESSION.color,text,msgType:type});
-}
 
 // ─── LOBBY ────────────────────────────────────────
 let userRole='coach';
