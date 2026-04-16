@@ -991,6 +991,7 @@ function toggleStudentMove(){
   if(btn)btn.textContent='Students: '+(G.studentCanMove?'Move':'Watch');
   document.getElementById('lockBtn').classList.toggle('on',G.studentCanMove);
   toast('Students can '+(G.studentCanMove?'now move pieces':'only watch'),'#c9a84c');
+  if(roomRef)roomRef.child('lock').set(G.studentCanMove);
 }
 function loadFEN(){
   const fen=document.getElementById('fenInp').value.trim();
