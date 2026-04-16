@@ -529,7 +529,10 @@ input,textarea,select{font-family:var(--font);outline:none}
 // ═══════════════════════════════════════════════
 // CHESS ENGINE — full legal move generation
 // ═══════════════════════════════════════════════
-const PIECES = {
+const firebaseConfig={apiKey:"AIzaSyA1jMij2XZCk54G7gWVN1hHwjQhw7bMPRc",authDomain:"classroom-74434.firebaseapp.com",databaseURL:"https://classroom-74434-default-rtdb.firebaseio.com",projectId:"classroom-74434",storageBucket:"classroom-74434.firebasestorage.app",messagingSenderId:"144311661700",appId:"1:144311661700:web:412483a280bd03ba41fed1"};
+firebase.initializeApp(firebaseConfig);
+const db=firebase.database();
+  const PIECES = {
   wK:'♔',wQ:'♕',wR:'♖',wB:'♗',wN:'♘',wP:'♙',
   bK:'♚',bQ:'♛',bR:'♜',bB:'♝',bN:'♞',bP:'♟',
 };
